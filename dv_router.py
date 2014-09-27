@@ -17,17 +17,23 @@ class DVRouter (Entity):
             old_DV = self.routing_table.get_minimum_dv()
             if packet.is_link_up:
                 self.adjacent_hosts[packet.src] = port
-                self.routing_table.insert_route(packet.dst, port, 1)
+                self.routing_table.insert_route(packet.src, port, 1)
             else:
+                bad_port=self.adjacent_hosts[packet.src]
                 del self.adjacent_hosts[packet.src]
+
                 self.routing_table.remove_route_host(packet.src)
+                bad_host=[]
                 for host in self.routing_table.r_table:
-                    if port in host.keys():
-                        self.routing_table.remove_route_port(host,port)
-                if self.routing_table.get_minimum_dv(port) != old_DV:
+                    if bad_port in host.keys():
+                        bad_host.append(host)
+                for host in bad_host:
+                    self.routing_table.remove_route_port(host, bad_port)
+
+                if self.routing_table.get_minimum_dv() != old_DV:
                     for adj_host in self.adjacent_hosts.keys():
                         update_packet = RoutingUpdate()
-                        new_DV = self.routing_table.get_minimum_dv(port)
+                        new_DV = self.routing_table.get_minimum_dv()
                         update_packet.paths = new_DV
                         if not isinstance(adj_host, HostEntity):
                             self.send(update_packet, self.adjacent_hosts[adj_host])
@@ -36,20 +42,20 @@ class DVRouter (Entity):
             old_DV = self.routing_table.get_minimum_dv()
             remove = []
             for dest in self.routing_table.r_table:
-                if self.routing_table[dest].has_key(port) and dest is not packet.src:
-                    remove.append((dest,port))
-            for (d,p) in remove:
+                if self.routing_table.r_table[dest].has_key(port) and dest is not packet.src:
+                    remove.append((dest, port))
+            for (d, p) in remove:
                 self.routing_table.remove_route_port(d, p)
 
-            for hosts in packet.all_dests():
-                dist=packet.get_distance(hosts)
+            for hosts in packet.paths:
+                dist = packet.get_distance(hosts)
                 self.routing_table.insert_route(hosts, port, dist+self.routing_table.get_route(hosts, port))
 
             new_DV = self.routing_table.get_minimum_dv()
             if new_DV != old_DV:
                 for adj_host in self.adjacent_hosts.keys():
                     update_packet = RoutingUpdate()
-                    new_DV = self.routing_table.get_minimum_dv(port)
+                    new_DV = self.routing_table.get_minimum_dv()
                     update_packet.paths = new_DV
                     if not isinstance(adj_host, HostEntity):
                         self.send(update_packet, self.adjacent_hosts[adj_host])
@@ -74,6 +80,8 @@ class RoutingTable():
         self.r_table[dest][port] = dist
 
     def get_route(self, dest, port):
+        if dest not in self.r_table or port not in self.r_table[dest]:
+            return 999999
         return self.r_table[dest][port]
 
     def remove_route_host(self, dest):
@@ -90,6 +98,8 @@ class RoutingTable():
         if not self.r_table.has_key(dest) or not self.r_table[dest].values():
             return None
         min_distance = self.get_minimum_distance(dest)
+        if not min_distance:
+            min_distance = 9999999
 
         #look up distance, see if they have 2 different ports
         good_ports = []
@@ -105,8 +115,7 @@ class RoutingTable():
 
     #Given a destination, find the shortest Distance Vector
     #Try to avoid bad ports/hosts
-    #Bad host:经过任何ports都不通
-    #Bad port:只是这个port不能通往某个host
+
     def get_minimum_dv(self, bad_port=None):
         out_dv = {}
         for dest in self.r_table:
