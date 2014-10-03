@@ -106,11 +106,11 @@ create(switch)
 start = sim.core.simulate
 start()
 
-time.sleep(20)
+time.sleep(5)
 
 topo.unlink(s1, ho)
 
-time.sleep(100)
+time.sleep(10)
 
 
 print("OVER")
