@@ -18,7 +18,7 @@ class DVRouter (Entity):
                 self.adjacent_hosts[packet.src] = port
                 self.routing_table.insert_route(packet.src, port, 1)
             else:
-                self.remove_neighbor(packet)
+                self.remove_from_neighbor_and_routing_table(packet)
 
             if self.routing_table.get_optimized_dv() != old_DV:
                 self.send_routing_update()
@@ -49,7 +49,7 @@ class DVRouter (Entity):
             if not type(adj_host) is HostEntity:
                 self.send(update_packet, self.adjacent_hosts[adj_host])
 
-    def remove_neighbor(self, packet):
+    def remove_from_neighbor_and_routing_table(self, packet):
         if self.adjacent_hosts.has_key(packet.src):
             bad_port = self.adjacent_hosts[packet.src]
             del self.adjacent_hosts[packet.src]
@@ -67,6 +67,7 @@ class DVRouter (Entity):
                 continue
             else:
                 new_dv[dest] = self.routing_table.r_table[dest][best_port_for_each_dest]
+                #set that bad_port, bad_host to inifinity
         return new_dv
 
 
@@ -83,8 +84,8 @@ class RoutingTable():
         self.r_table[dest][port] = dist
 
     def get_route(self, dest, port):
-        #if dest not in self.r_table or port not in self.r_table[dest]:
-            #return INFINITY
+        if dest not in self.r_table or port not in self.r_table[dest]:
+            return INFINITY
         return self.r_table[dest][port]
 
     def remove_route_host(self, dest):
