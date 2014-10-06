@@ -16,8 +16,8 @@ class DVRouter (Entity):
             old_DV = self.routing_table.get_optimized_dv()
             if packet.is_link_up:
                 self.adjacent_hosts[packet.src] = port
-                #self.routing_table.insert_route(packet.src, port, 1)
-                self.handle_link_latency(packet, port)
+                self.routing_table.insert_route(packet.src, port, 1)
+                #self.handle_link_latency(packet, port)
             else:
                 self.remove_from_neighbor_and_routing_table(packet)
 
