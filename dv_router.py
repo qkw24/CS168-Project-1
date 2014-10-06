@@ -64,10 +64,12 @@ class DVRouter (Entity):
         for dest in self.routing_table.r_table:
             best_port_for_each_dest = self.routing_table.get_best_port(dest)
             if best_port_for_each_dest == bad_port or dest == bad_host:
+                #set that bad_port, bad_host to inifinity
+                #new_dv[dest] = INFINITY
                 continue
             else:
                 new_dv[dest] = self.routing_table.r_table[dest][best_port_for_each_dest]
-                #set that bad_port, bad_host to inifinity
+
         return new_dv
 
 
