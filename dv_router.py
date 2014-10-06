@@ -1,6 +1,6 @@
 from sim.api import *
 from sim.basics import *
-INFINITY = 100
+INFINITY = float("inf")
 '''
 Create your distance vector router in this file.
 '''
@@ -16,7 +16,8 @@ class DVRouter (Entity):
             old_DV = self.routing_table.get_optimized_dv()
             if packet.is_link_up:
                 self.adjacent_hosts[packet.src] = port
-                self.routing_table.insert_route(packet.src, port, 1)
+                #self.routing_table.insert_route(packet.src, port, 1)
+                self.handle_link_latency(packet, port)
             else:
                 self.remove_from_neighbor_and_routing_table(packet)
 
@@ -32,7 +33,10 @@ class DVRouter (Entity):
 
             for dest in packet.paths:
                 dist = packet.get_distance(dest)
-                self.routing_table.insert_route(dest, port, dist+self.routing_table.get_route(packet.src, port))
+                self.routing_table.insert_route(
+                    dest,
+                    port,
+                    dist+self.routing_table.get_route(packet.src, port))
 
             if self.routing_table.get_optimized_dv() != old_DV:
                 self.send_routing_update()
@@ -72,6 +76,18 @@ class DVRouter (Entity):
 
         return new_dv
 
+    def handle_link_latency(self, packet, port):
+        old_latency = self.routing_table.get_route(packet.src, port)
+        if old_latency != packet.latency:
+            self.routing_table.insert_route(packet.src, port, packet.latency)
+            if old_latency is not INFINITY:
+                for host in self.routing_table.r_table:
+                    if port in self.routing_table.r_table[host].keys():
+                        self.routing_table.insert_route(
+                            host,
+                            port,
+                            self.routing_table.get_route(host, port) - old_latency + packet.latency)
+
 
 class RoutingTable():
     def __init__(self):
@@ -101,8 +117,6 @@ class RoutingTable():
 
     #Given a destination, find the best port (smallest port)
     def get_best_port(self, dest):
-        #if not self.r_table.has_key(dest) or not self.r_table[dest].values():
-            #return None
         min_distance = self.get_minimum_distance(dest)
 
         #look up distance, see if they have 2 different ports
@@ -110,8 +124,7 @@ class RoutingTable():
         for i, j in self.r_table[dest].iteritems():
             if j == min_distance:
                 good_ports.append(i)
-        #if not good_ports:
-            #return None
+
         return min(good_ports)
 
     def get_minimum_distance(self, dest):

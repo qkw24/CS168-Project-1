@@ -5,7 +5,7 @@ sys.path.append('.')
 
 from sim.api import *
 from sim.basics import *
-from dv_router_ch import DVRouter
+from dv_router import DVRouter
 import sim.topo as topo
 import os
 import time
@@ -182,7 +182,7 @@ def create (switch_type = FakeEntity, host_type = FakeEntity, n = 2):
     time.sleep(waittime)    #       C-----D
     if(failed):
         return
-    
+    """
     print "Case 9: A-B-Branch(Z, C-D-E, F-G)"
     topo.unlink(A, Z)
     topo.unlink(E, Z)
@@ -219,7 +219,7 @@ def create (switch_type = FakeEntity, host_type = FakeEntity, n = 2):
     time.sleep(waittime)
     if(failed):
         return
-
+    """
     print "Case 10: EShaped(ABC,EHD,FGZ)"
     #topo.unlink(B, Z)
     #topo.unlink(Z, C)
